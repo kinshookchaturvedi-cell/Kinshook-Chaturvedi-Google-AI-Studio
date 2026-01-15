@@ -70,7 +70,8 @@ const App: React.FC = () => {
     setLoading(true);
     setError(null);
     try {
-      const stockInfo = await searchSpecificStock(individualStockQuery, effectiveCountry);
+      // Fixed: searchSpecificStock signature is (query, count, country). effectiveCountry was passed as count.
+      const stockInfo = await searchSpecificStock(individualStockQuery, 1, effectiveCountry);
       if (stockInfo) {
         const report = await generateCFAReport(stockInfo);
         setActiveReport(report);
@@ -112,7 +113,8 @@ const App: React.FC = () => {
       setActiveReport(report);
       setView(ViewState.REPORT);
     } catch (err) {
-      setError("Analysis generation failed. AI model timeout.");
+      console.error("Report generation error:", err);
+      setError("Analysis generation failed. AI model timeout or malformed data.");
     } finally {
       setLoading(false);
     }
@@ -431,11 +433,11 @@ const App: React.FC = () => {
           <span className="text-slate-300">|</span>
           <span className="flex items-center uppercase">
             <i className="fas fa-shield-halved mr-2 text-slate-400"></i>
-            Compliance: CFA Research Essentials v2024
+            Compliance: CFA Research Essentials v2025
           </span>
         </div>
         <div className="uppercase">
-          &copy; MMXXIV Kinshook Chaturvedi Institutional Terminal
+          &copy;  Kinshook Chaturvedi Institutional Analysis
         </div>
       </footer>
     </div>

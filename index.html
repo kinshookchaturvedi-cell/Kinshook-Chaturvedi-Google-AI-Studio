@@ -8,48 +8,90 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:wght@700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Playfair+Display:wght@700&display=swap');
         body { font-family: 'Inter', sans-serif; }
         .serif { font-family: 'Playfair Display', serif; }
 
+        /* Institutional Print Engine Enhancements */
         @media print {
-            nav, footer, .no-print, button {
-                display: none !important;
-            }
-            body {
+            /* Reset basics */
+            html, body {
+                height: auto !important;
+                overflow: visible !important;
                 background-color: white !important;
                 margin: 0 !important;
                 padding: 0 !important;
+                width: 100% !important;
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
             }
+
+            /* Hide interactive elements */
+            nav, footer, .no-print, button, .status-bar, .fixed {
+                display: none !important;
+            }
+
+            /* Ensure main content expands for all pages */
             main {
-                padding-top: 0 !important;
+                padding: 0 !important;
+                margin: 0 !important;
+                width: 100% !important;
+                max-width: 100% !important;
+                overflow: visible !important;
+                display: block !important;
+                position: relative !important;
             }
-            .max-w-5xl {
+
+            /* Expand container */
+            .max-w-6xl, .max-w-7xl {
                 max-width: 100% !important;
                 width: 100% !important;
                 box-shadow: none !important;
                 border: none !important;
+                margin: 0 !important;
+                padding: 0 !important;
             }
+
+            /* Force color rendering for institutional aesthetics */
             .bg-slate-900 {
                 background-color: #0f172a !important;
-                -webkit-print-color-adjust: exact;
-            }
-            .bg-slate-100 {
-                background-color: #f1f5f9 !important;
-                -webkit-print-color-adjust: exact;
-            }
-            .bg-blue-50 {
-                background-color: #eff6ff !important;
-                -webkit-print-color-adjust: exact;
-            }
-            .text-white {
                 color: white !important;
             }
-            .shadow-2xl, .shadow-xl {
+            .bg-slate-50 {
+                background-color: #f8fafc !important;
+            }
+            .bg-blue-600 {
+                background-color: #2563eb !important;
+            }
+            .bg-blue-50\/40 {
+                background-color: rgba(239, 246, 255, 0.4) !important;
+            }
+            .bg-blue-600\/30 {
+                background-color: rgba(37, 99, 235, 0.3) !important;
+            }
+
+            /* Integrity of layout */
+            .rounded-2xl, .rounded-3xl, .rounded-xl {
+                border-radius: 0.75rem !important;
+                border: 1px solid #e2e8f0 !important;
+            }
+            .shadow-2xl, .shadow-xl, .shadow-sm {
                 box-shadow: none !important;
             }
-            tr {
-                page-break-inside: avoid;
+
+            /* Logic for page breaks to prevent mangled data */
+            tr, .avoid-break, .bg-slate-900, .bg-slate-50, .score-bar-container {
+                page-break-inside: avoid !important;
+            }
+            
+            section {
+                page-break-inside: avoid !important;
+                margin-bottom: 2rem !important;
+            }
+
+            @page {
+                margin: 1.5cm;
+                size: auto;
             }
         }
     </style>
