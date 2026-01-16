@@ -120,8 +120,14 @@ const BacktestView: React.FC<BacktestViewProps> = ({ result, onBack }) => {
         </div>
       </div>
 
-      <div className="text-center p-8 bg-slate-100 rounded-2xl text-[10px] text-slate-400 font-bold uppercase tracking-widest border border-slate-200 border-dashed">
-        DISCLAIMER: HYPOTHETICAL HISTORICAL RESULTS DO NOT GUARANTEE FUTURE PERFORMANCE. ANALYSIS BASED ON AI SYNTHESIS OF PUBLIC MARKET DATA.
+      <div className="bg-white rounded-2xl p-10 shadow-xl border border-slate-200 text-center space-y-4">
+        <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.25em]">Institutional Compliance & Legal Disclosure</p>
+        <p className="text-[11px] text-slate-500 leading-relaxed italic font-medium max-w-4xl mx-auto">
+          All investments in the securities market are subject to market risks. The content provided is for informational and educational purposes only and should not be construed as investment advice. Investors are advised to read all related documents carefully and consult their own independent financial adviser before making any investment decisions. The company/platform assumes no liability for any losses incurred. Past performance is not indicative of future results.
+        </p>
+        <div className="text-[10px] text-slate-300 font-bold uppercase tracking-widest pt-4 border-t border-slate-50">
+          HYPOTHETICAL HISTORICAL RESULTS RECONSTRUCTED VIA AI SYNTHESIS OF PUBLIC DATA
+        </div>
       </div>
     </div>
   );

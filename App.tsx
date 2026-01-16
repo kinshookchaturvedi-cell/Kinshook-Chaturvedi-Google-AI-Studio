@@ -1,18 +1,22 @@
 
 import React, { useState } from 'react';
-import { Country, InvestmentConcept, StockInfo, CFAReport, BacktestResult } from './types';
+import { Country, InvestmentConcept, StockInfo, CFAReport, BacktestResult, DeepFinancials } from './types';
 import { COUNTRIES, CONCEPT_CONFIGS } from './constants';
-import { screenStocks, generateCFAReport, backtestStrategy, searchSpecificStock } from './services/geminiService';
+import { screenStocks, generateCFAReport, backtestStrategy, searchSpecificStock, getDeepFinancials } from './services/geminiService';
 import ArchitectureView from './components/ArchitectureView';
 import ReportCard from './components/ReportCard';
 import BacktestView from './components/BacktestView';
+import TerminalView from './components/TerminalView';
+import DeepFinancialsView from './components/DeepFinancialsView';
 
 enum ViewState {
   HOME,
   RESULTS,
   REPORT,
   ARCH,
-  BACKTEST
+  BACKTEST,
+  TERMINAL,
+  DEEP_FINANCIALS
 }
 
 const App: React.FC = () => {
@@ -34,6 +38,7 @@ const App: React.FC = () => {
   const [results, setResults] = useState<StockInfo[]>([]);
   const [activeReport, setActiveReport] = useState<CFAReport | null>(null);
   const [backtestResult, setBacktestResult] = useState<BacktestResult | null>(null);
+  const [deepFinancials, setDeepFinancials] = useState<DeepFinancials | null>(null);
 
   const effectiveCountry = selectedCountry === 'Other' ? customCountry : selectedCountry;
 
@@ -53,7 +58,9 @@ const App: React.FC = () => {
     setError(null);
     try {
       const data = await screenStocks(effectiveCountry, finalStrategy, stockCount);
-      setResults(data);
+      // Ensure results are sorted by Alignment Score in decreasing order
+      const sortedData = [...data].sort((a, b) => b.score - a.score);
+      setResults(sortedData);
       setView(ViewState.RESULTS);
     } catch (err) {
       setError("Failed to screen stocks. Market data retrieval failed.");
@@ -62,16 +69,16 @@ const App: React.FC = () => {
     }
   };
 
-  const handleIndividualAnalysis = async () => {
-    if (!individualStockQuery.trim()) {
+  const handleIndividualAnalysis = async (query?: string) => {
+    const target = query || individualStockQuery;
+    if (!target.trim()) {
       setError("Please enter a stock ticker or name.");
       return;
     }
     setLoading(true);
     setError(null);
     try {
-      // Fixed: searchSpecificStock signature is (query, count, country). effectiveCountry was passed as count.
-      const stockInfo = await searchSpecificStock(individualStockQuery, 1, effectiveCountry);
+      const stockInfo = await searchSpecificStock(target, 1, effectiveCountry);
       if (stockInfo) {
         const report = await generateCFAReport(stockInfo);
         setActiveReport(report);
@@ -120,6 +127,22 @@ const App: React.FC = () => {
     }
   };
 
+  const handleViewDeepFinancials = async () => {
+    if (!activeReport) return;
+    setLoading(true);
+    setError(null);
+    try {
+      const data = await getDeepFinancials(activeReport.basicInfo);
+      setDeepFinancials(data);
+      setView(ViewState.DEEP_FINANCIALS);
+    } catch (err) {
+      console.error("Deep financials error:", err);
+      setError("Failed to extract deep financial data from official filings.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleStockCountChange = (value: string) => {
     const num = parseInt(value);
     if (isNaN(num)) {
@@ -128,6 +151,17 @@ const App: React.FC = () => {
       setStockCount(Math.min(50, Math.max(1, num)));
     }
   };
+
+  const RegulatoryDisclaimer = () => (
+    <div className="pt-12 pb-8 border-t border-slate-200 text-center animate-fadeIn">
+      <div className="max-w-4xl mx-auto space-y-3 px-4">
+        <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.25em]">Institutional Compliance & Legal Disclosure</p>
+        <p className="text-[11px] md:text-xs text-slate-500 leading-relaxed italic font-medium">
+          "All investments in the securities market are subject to market risks. The content provided is for informational and educational purposes only and should not be construed as investment advice. Investors are advised to read all related documents carefully and consult their own independent financial adviser before making any investment decisions. The company/platform assumes no liability for any losses incurred. Past performance is not indicative of future results."
+        </p>
+      </div>
+    </div>
+  );
 
   return (
     <div className="min-h-screen pb-20">
@@ -140,7 +174,7 @@ const App: React.FC = () => {
         <div className="flex space-x-6 text-sm font-medium text-slate-600">
           <button onClick={() => setView(ViewState.HOME)} className={`hover:text-blue-600 ${view === ViewState.HOME ? 'text-blue-600' : ''}`}>Dashboard</button>
           <button onClick={() => setView(ViewState.ARCH)} className={`hover:text-blue-600 ${view === ViewState.ARCH ? 'text-blue-600' : ''}`}>System & Logic</button>
-          <button className="hover:text-blue-600">Terminal</button>
+          <button onClick={() => setView(ViewState.TERMINAL)} className={`hover:text-blue-600 ${view === ViewState.TERMINAL ? 'text-blue-600' : ''}`}>Terminal</button>
         </div>
       </nav>
 
@@ -306,7 +340,7 @@ const App: React.FC = () => {
                       className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-4 pr-12 focus:ring-2 focus:ring-blue-500 transition-all outline-none text-white placeholder:text-slate-500"
                     />
                     <button 
-                      onClick={handleIndividualAnalysis}
+                      onClick={() => handleIndividualAnalysis()}
                       className="absolute right-3 top-3 bg-slate-700 hover:bg-slate-600 text-white w-10 h-10 rounded-lg flex items-center justify-center transition-colors border border-slate-600"
                     >
                       <i className="fas fa-magnifying-glass text-xs"></i>
@@ -316,11 +350,13 @@ const App: React.FC = () => {
                 </div>
               </div>
             </div>
+
+            <RegulatoryDisclaimer />
           </div>
         )}
 
         {view === ViewState.RESULTS && (
-          <div className="animate-fadeIn">
+          <div className="animate-fadeIn pb-20">
             <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-8 gap-4">
               <div>
                 <button onClick={() => setView(ViewState.HOME)} className="text-blue-600 font-semibold mb-2 hover:underline inline-flex items-center">
@@ -349,15 +385,15 @@ const App: React.FC = () => {
               </div>
             </div>
 
-            <div className="bg-white rounded-2xl shadow-xl overflow-hidden border border-slate-200">
+            <div className="bg-white rounded-2xl shadow-xl overflow-hidden border border-slate-200 mb-12">
               <div className="overflow-x-auto">
                 <table className="w-full text-left">
                   <thead className="bg-slate-50 border-b border-slate-200">
                     <tr>
                       <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-widest">Rank / Security</th>
                       <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-widest">Sector Vertical</th>
-                      <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-widest text-right">Live Pricing (USD)</th>
-                      <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-widest text-right">Alpha Density (1-10)</th>
+                      <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-widest text-right">Live Pricing</th>
+                      <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-widest text-right">Alignment Score (1-100)</th>
                       <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-widest text-center">Intelligence</th>
                     </tr>
                   </thead>
@@ -385,9 +421,9 @@ const App: React.FC = () => {
                         <td className="px-6 py-6 text-right">
                           <div className="flex flex-col items-end">
                             <div className="flex items-center mb-1.5">
-                              <span className="font-mono font-bold text-slate-900 mr-3 text-lg">{stock.score.toFixed(1)}</span>
+                              <span className="font-mono font-bold text-slate-900 mr-3 text-lg">{Math.round(stock.score)}</span>
                               <div className="w-24 h-2.5 bg-slate-100 rounded-full overflow-hidden border border-slate-200">
-                                <div className="h-full bg-blue-600 shadow-sm transition-all duration-1000" style={{ width: `${stock.score * 10}%` }}></div>
+                                <div className="h-full bg-blue-600 shadow-sm transition-all duration-1000" style={{ width: `${stock.score}%` }}></div>
                               </div>
                             </div>
                             <span className="text-[10px] font-bold text-slate-400">INSTITUTIONAL RANK</span>
@@ -407,11 +443,16 @@ const App: React.FC = () => {
                 </table>
               </div>
             </div>
+            <RegulatoryDisclaimer />
           </div>
         )}
 
         {view === ViewState.REPORT && activeReport && (
-          <ReportCard report={activeReport} onBack={() => setView(results.length > 0 ? ViewState.RESULTS : ViewState.HOME)} />
+          <ReportCard 
+            report={activeReport} 
+            onBack={() => setView(results.length > 0 ? ViewState.RESULTS : ViewState.HOME)} 
+            onViewDeepFinancials={handleViewDeepFinancials}
+          />
         )}
 
         {view === ViewState.BACKTEST && backtestResult && (
@@ -420,6 +461,22 @@ const App: React.FC = () => {
 
         {view === ViewState.ARCH && (
           <ArchitectureView />
+        )}
+
+        {view === ViewState.TERMINAL && (
+          <TerminalView 
+            country={effectiveCountry} 
+            onCommand={(cmd) => handleScreen(cmd)} 
+            onAnalyzeTicker={(ticker) => handleIndividualAnalysis(ticker)}
+          />
+        )}
+
+        {view === ViewState.DEEP_FINANCIALS && activeReport && deepFinancials && (
+          <DeepFinancialsView 
+            stock={activeReport.basicInfo} 
+            data={deepFinancials} 
+            onBack={() => setView(ViewState.REPORT)}
+          />
         )}
       </main>
 

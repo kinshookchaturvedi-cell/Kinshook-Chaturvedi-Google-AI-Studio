@@ -37,6 +37,55 @@ export interface StockInfo {
   sources?: { title: string; uri: string }[];
 }
 
+export interface MarketPulse {
+  trending: { ticker: string; price: string; change: string; sentiment: string }[];
+  macro: { indicator: string; value: string; trend: 'up' | 'down' | 'stable' }[];
+  news: { headline: string; source: string; timestamp: string }[];
+}
+
+export interface DeepFinancials {
+  executiveSummary: {
+    summary: string;
+    highlights: string[];
+  };
+  historical9Y: {
+    year: string;
+    revenue: number;
+    ebitda: number;
+    pat: number;
+    eps: number;
+    revenueYoY: number;
+    patYoY: number;
+  }[];
+  quarterly6Q: {
+    quarter: string;
+    incomeStatement: {
+      revenue: number;
+      revenueQoQ: number;
+      ebit: number;
+      ebitQoQ: number;
+      pat: number;
+      patQoQ: number;
+    };
+    balanceSheet: {
+      totalAssets: number;
+      assetsQoQ: number;
+      totalEquity: number;
+      equityQoQ: number;
+      netDebt: number;
+      debtQoQ: number;
+    };
+    cashFlow: {
+      operatingCF: number;
+      operatingQoQ: number;
+      investingCF: number;
+      investingQoQ: number;
+      financingCF: number;
+      financingQoQ: number;
+    };
+  }[];
+}
+
 export interface CFAScores {
   quality: number;
   growth: number;

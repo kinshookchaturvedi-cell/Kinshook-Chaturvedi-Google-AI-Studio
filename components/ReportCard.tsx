@@ -5,6 +5,7 @@ import { CFAReport } from '../types';
 interface ReportCardProps {
   report: CFAReport;
   onBack: () => void;
+  onViewDeepFinancials: () => void;
 }
 
 const ScoreBar: React.FC<{ label: string; score: number; color: string }> = ({ label, score, color }) => (
@@ -36,7 +37,7 @@ const DataField: React.FC<{ label: string; value: string; color?: string }> = ({
   </div>
 );
 
-const ReportCard: React.FC<ReportCardProps> = ({ report, onBack }) => {
+const ReportCard: React.FC<ReportCardProps> = ({ report, onBack, onViewDeepFinancials }) => {
   const { 
     basicInfo, 
     sources, 
@@ -75,14 +76,14 @@ const ReportCard: React.FC<ReportCardProps> = ({ report, onBack }) => {
             </div>
             <div className="space-y-4">
               <h4 className="text-[9px] font-black text-blue-600 uppercase tracking-widest border-b border-blue-50 pb-1">Liquidity & Float Dynamics</h4>
-              <div className="bg-slate-50/50 p-4 rounded-xl border border-slate-100 space-y-4">
+              <div className="bg-slate-50/50 p-4 rounded-xl border border-slate-100 space-y-4 h-full flex flex-col justify-center">
                 <div>
                   <span className="block text-[8px] uppercase text-slate-400 font-black tracking-widest mb-1">Liquidity Profile</span>
                   <p className="text-[10px] text-slate-600 leading-relaxed italic">
                     {basicInfo.liquidity || 'Adequate trading volume to support institutional entry/exit without significant slippage.'}
                   </p>
                 </div>
-                <div>
+                <div className="mt-4">
                   <span className="block text-[8px] uppercase text-slate-400 font-black tracking-widest mb-1">Public Float & Availability</span>
                   <p className="text-[10px] text-slate-600 leading-relaxed font-medium">
                     {basicInfo.float || 'High institutional concentration with moderate public availability (approx. 40-60% of outstanding shares).'}
@@ -180,7 +181,6 @@ const ReportCard: React.FC<ReportCardProps> = ({ report, onBack }) => {
           <p>{report.valuation}</p>
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Absolute Valuation Detailed Breakdown */}
             <div className="p-5 bg-slate-900 text-slate-200 border border-slate-800 rounded-2xl shadow-xl">
               <div className="flex items-center space-x-2 mb-4 border-b border-slate-800 pb-2">
                 <i className="fas fa-microchip text-blue-400 text-[10px]"></i>
@@ -191,7 +191,6 @@ const ReportCard: React.FC<ReportCardProps> = ({ report, onBack }) => {
               </div>
             </div>
 
-            {/* Relative Valuation Peer Mapping */}
             <div className="p-5 bg-slate-50 border border-slate-200 rounded-2xl">
               <div className="flex items-center space-x-2 mb-4 border-b border-slate-200 pb-2">
                 <i className="fas fa-layer-group text-slate-400 text-[10px]"></i>
@@ -243,8 +242,20 @@ const ReportCard: React.FC<ReportCardProps> = ({ report, onBack }) => {
             <button onClick={onBack} className="no-print mb-8 px-5 py-2 bg-slate-800 hover:bg-slate-700 text-slate-100 rounded-lg flex items-center transition-all border border-slate-700 font-black text-[10px] uppercase tracking-widest">
               <i className="fas fa-arrow-left mr-2"></i> Terminal Home
             </button>
-            <h1 className="text-5xl serif font-bold mb-3 tracking-tight uppercase">{basicInfo.name}</h1>
-            <p className="text-blue-400 text-xs uppercase tracking-[0.3em] font-black">CFA Institute Compliant Research • 2025 Edition</p>
+            <div className="flex items-center space-x-3 mb-2">
+              <span className="bg-blue-600 px-3 py-1 rounded text-[10px] font-black tracking-widest uppercase">
+                {basicInfo.ticker}
+              </span>
+              <span className="text-slate-400 text-[10px] font-bold tracking-widest uppercase">
+                {basicInfo.exchange}
+              </span>
+            </div>
+            <h1 className="text-5xl serif font-bold mb-3 tracking-tight uppercase leading-tight">
+              {basicInfo.name}
+            </h1>
+            <p className="text-blue-400 text-xs uppercase tracking-[0.3em] font-black">
+              CFA Institute Compliant Research • 2025 Edition
+            </p>
           </div>
           <div className="text-right flex flex-col items-end">
             <div className={`text-[10px] font-black px-6 py-2 rounded-full mb-6 shadow-xl tracking-widest uppercase ${basicInfo.recommendation === 'Buy' ? 'bg-green-600' : basicInfo.recommendation === 'Sell' ? 'bg-red-600' : 'bg-slate-700'}`}>
@@ -283,19 +294,19 @@ const ReportCard: React.FC<ReportCardProps> = ({ report, onBack }) => {
             <table className="w-full border-collapse">
               <thead className="bg-slate-50 border-b border-slate-200">
                 <tr>
-                  <th className="px-8 py-5 text-left text-[10px] font-black text-slate-500 w-64 uppercase tracking-widest">Dimension</th>
+                  <th className="px-8 py-5 text-left text-[10px] font-black text-slate-500 w-64 uppercase tracking-widest border-r border-slate-200">Dimension</th>
                   <th className="px-8 py-5 text-left text-[10px] font-black text-slate-500 uppercase tracking-widest">Institutional Analysis</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
                 {sections.map((sec, idx) => (
                   <tr key={idx} className={`${sec.highlight ? 'bg-blue-50/40' : ''} avoid-break`}>
-                    <td className="px-8 py-8 font-black text-slate-800 align-top text-[10px] uppercase tracking-widest">
+                    <td className="px-8 py-8 font-black text-slate-800 align-top text-[10px] uppercase tracking-widest border-r border-slate-200">
                       <i className={`fas ${sec.icon} mr-4 text-slate-400 w-5 text-center text-sm`}></i>
                       {sec.title}
                     </td>
                     <td className="px-8 py-8 text-slate-600 text-xs leading-relaxed text-justify whitespace-pre-wrap font-medium">
-                      {sec.content || 'Analytical engine processing security filings...'}
+                      {sec.content}
                     </td>
                   </tr>
                 ))}
@@ -303,7 +314,7 @@ const ReportCard: React.FC<ReportCardProps> = ({ report, onBack }) => {
             </table>
           </div>
 
-          {/* COMPREHENSIVE INSTITUTIONAL SCORECARD (ScorecardData Display) */}
+          {/* COMPREHENSIVE INSTITUTIONAL SCORECARD */}
           {scorecard && (
             <div className="space-y-6 avoid-break pt-8">
               <div className="flex items-center space-x-3 mb-2 border-b-2 border-slate-900 pb-3">
@@ -395,14 +406,24 @@ const ReportCard: React.FC<ReportCardProps> = ({ report, onBack }) => {
             </div>
           )}
 
-          {/* Executive Filing Insight */}
+          {/* Filing Insight Box */}
           <div className="p-10 bg-slate-900 text-slate-300 rounded-3xl border-l-[16px] border-l-blue-600 shadow-2xl text-[11px] leading-relaxed italic border border-slate-800 relative overflow-hidden avoid-break">
             <div className="absolute top-0 right-0 p-4 text-slate-800 opacity-20"><i className="fas fa-quote-right text-6xl"></i></div>
             <h4 className="text-[10px] font-black text-blue-400 uppercase tracking-widest mb-6 not-italic border-b border-slate-800 pb-3 inline-block">Institutional Filing Insight (FY24/25)</h4>
             <div className="relative z-10">{report.executiveSummary || 'Awaiting synchronization with local market filings...'}</div>
           </div>
 
-          {/* Grounding Sources */}
+          {/* Deep Financials Navigation */}
+          <div className="no-print pt-8 pb-4 flex justify-center">
+            <button 
+              onClick={onViewDeepFinancials}
+              className="px-12 py-5 bg-blue-600 text-white rounded-2xl font-black text-sm uppercase tracking-widest hover:bg-blue-700 transition-all shadow-xl hover:shadow-blue-200 transform hover:-translate-y-1"
+            >
+              <i className="fas fa-database mr-3"></i> View Deep Financials (9Y Historical & 6Q Quarterly)
+            </button>
+          </div>
+
+          {/* Grounding Trail */}
           {sources && sources.length > 0 && (
             <div className="p-6 bg-slate-50 rounded-2xl border-2 border-slate-200 border-dashed no-print space-y-5 avoid-break">
               <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-widest flex items-center">
@@ -419,8 +440,18 @@ const ReportCard: React.FC<ReportCardProps> = ({ report, onBack }) => {
             </div>
           )}
 
+          {/* Regulatory Disclaimer */}
+          <div className="pt-10 pb-4 border-t-2 border-slate-100 text-center avoid-break">
+            <div className="max-w-4xl mx-auto space-y-2">
+              <p className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em]">Institutional Compliance & Legal Disclosure</p>
+              <p className="text-[10px] text-slate-500 leading-relaxed italic font-medium px-4">
+                "All investments in the securities market are subject to market risks. The content provided is for informational and educational purposes only and should not be construed as investment advice. Investors are advised to read all related documents carefully and consult their own independent financial adviser before making any investment decisions. The company/platform assumes no liability for any losses incurred. Past performance is not indicative of future results."
+              </p>
+            </div>
+          </div>
+
           {/* Footer Controls */}
-          <div className="no-print flex justify-between items-center pt-12 border-t-2 border-slate-100">
+          <div className="no-print flex justify-between items-center pt-8">
             <button onClick={onBack} className="text-slate-400 font-black hover:text-blue-600 text-[10px] uppercase tracking-widest transition-colors flex items-center group">
               <i className="fas fa-chevron-left mr-3 group-hover:-translate-x-1 transition-transform"></i> Return to Terminal
             </button>

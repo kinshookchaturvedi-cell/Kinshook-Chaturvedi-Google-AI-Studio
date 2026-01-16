@@ -1,6 +1,6 @@
 
 import { GoogleGenAI, Type } from "@google/genai";
-import { StockInfo, CFAReport, InvestmentConcept, Country, BacktestResult } from "../types";
+import { StockInfo, CFAReport, InvestmentConcept, Country, BacktestResult, MarketPulse, DeepFinancials } from "../types";
 
 const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
@@ -34,14 +34,198 @@ const extractSources = (response: any) => {
     }));
 };
 
-export const screenStocks = async (country: Country, concept: string, count: number): Promise<StockInfo[]> => {
+export const getDeepFinancials = async (stock: StockInfo): Promise<DeepFinancials> => {
   const response = await ai.models.generateContent({
     model: FAST_MODEL,
-    contents: `Screen top ${count} ${country} stocks for strategy: "${concept}". Return ticker, name, exchange, sector, industry, price, targetPrice, marketCap, recommendation, score (1-100), lastUpdated.`,
+    contents: `Extract detailed financial data for ${stock.name} (${stock.ticker}) from official sources or filings.
+    Required Data:
+    1. Executive summary of latest annual report + 5 key highlights.
+    2. 9-year historical data (Revenue, EBITDA, PAT, EPS) with YoY growth %.
+    3. Latest 6 quarters data: 
+       - Income Statement (Revenue, EBIT, PAT) AND their respective QoQ % growth for each.
+       - Balance Sheet (Total Assets, Total Equity, Net Debt) AND their respective QoQ % growth for each.
+       - Cash Flow (Operating, Investing, Financing) AND their respective QoQ % growth for each.
+    Ensure currency is consistent and reflects the reporting currency of the entity. Return JSON.`,
     config: {
       tools: [{ googleSearch: {} }],
       responseMimeType: "application/json",
-      thinkingConfig: { thinkingBudget: 0 }
+      thinkingConfig: { thinkingBudget: 0 },
+      responseSchema: {
+        type: Type.OBJECT,
+        properties: {
+          executiveSummary: {
+            type: Type.OBJECT,
+            properties: {
+              summary: { type: Type.STRING },
+              highlights: { type: Type.ARRAY, items: { type: Type.STRING } }
+            },
+            required: ["summary", "highlights"]
+          },
+          historical9Y: {
+            type: Type.ARRAY,
+            items: {
+              type: Type.OBJECT,
+              properties: {
+                year: { type: Type.STRING },
+                revenue: { type: Type.NUMBER },
+                ebitda: { type: Type.NUMBER },
+                pat: { type: Type.NUMBER },
+                eps: { type: Type.NUMBER },
+                revenueYoY: { type: Type.NUMBER },
+                patYoY: { type: Type.NUMBER }
+              },
+              required: ["year", "revenue", "ebitda", "pat", "eps", "revenueYoY", "patYoY"]
+            }
+          },
+          quarterly6Q: {
+            type: Type.ARRAY,
+            items: {
+              type: Type.OBJECT,
+              properties: {
+                quarter: { type: Type.STRING },
+                incomeStatement: {
+                  type: Type.OBJECT,
+                  properties: {
+                    revenue: { type: Type.NUMBER },
+                    revenueQoQ: { type: Type.NUMBER },
+                    ebit: { type: Type.NUMBER },
+                    ebitQoQ: { type: Type.NUMBER },
+                    pat: { type: Type.NUMBER },
+                    patQoQ: { type: Type.NUMBER }
+                  },
+                  required: ["revenue", "revenueQoQ", "ebit", "ebitQoQ", "pat", "patQoQ"]
+                },
+                balanceSheet: {
+                  type: Type.OBJECT,
+                  properties: {
+                    totalAssets: { type: Type.NUMBER },
+                    assetsQoQ: { type: Type.NUMBER },
+                    totalEquity: { type: Type.NUMBER },
+                    equityQoQ: { type: Type.NUMBER },
+                    netDebt: { type: Type.NUMBER },
+                    debtQoQ: { type: Type.NUMBER }
+                  },
+                  required: ["totalAssets", "assetsQoQ", "totalEquity", "equityQoQ", "netDebt", "debtQoQ"]
+                },
+                cashFlow: {
+                  type: Type.OBJECT,
+                  properties: {
+                    operatingCF: { type: Type.NUMBER },
+                    operatingQoQ: { type: Type.NUMBER },
+                    investingCF: { type: Type.NUMBER },
+                    investingQoQ: { type: Type.NUMBER },
+                    financingCF: { type: Type.NUMBER },
+                    financingQoQ: { type: Type.NUMBER }
+                  },
+                  required: ["operatingCF", "operatingQoQ", "investingCF", "investingQoQ", "financingCF", "financingQoQ"]
+                }
+              },
+              required: ["quarter", "incomeStatement", "balanceSheet", "cashFlow"]
+            }
+          }
+        },
+        required: ["executiveSummary", "historical9Y", "quarterly6Q"]
+      }
+    }
+  });
+
+  const data = safeParseJson(response.text);
+  if (!data) throw new Error("Deep financial extraction failed.");
+  return data;
+};
+
+export const getMarketPulse = async (country: Country): Promise<MarketPulse> => {
+  const response = await ai.models.generateContent({
+    model: FAST_MODEL,
+    contents: `Get real-time Market Pulse for ${country}. 
+    Include:
+    - 5 Trending tickers with price (in local currency) and change.
+    - 4 Macro indicators (Inflation, Rates, VIX, etc.) with trend.
+    - 3 Latest major financial headlines.
+    Return JSON format.`,
+    config: {
+      tools: [{ googleSearch: {} }],
+      responseMimeType: "application/json",
+      thinkingConfig: { thinkingBudget: 0 },
+      responseSchema: {
+        type: Type.OBJECT,
+        properties: {
+          trending: {
+            type: Type.ARRAY,
+            items: {
+              type: Type.OBJECT,
+              properties: {
+                ticker: { type: Type.STRING },
+                price: { type: Type.STRING },
+                change: { type: Type.STRING },
+                sentiment: { type: Type.STRING }
+              },
+              required: ["ticker", "price", "change", "sentiment"]
+            }
+          },
+          macro: {
+            type: Type.ARRAY,
+            items: {
+              type: Type.OBJECT,
+              properties: {
+                indicator: { type: Type.STRING },
+                value: { type: Type.STRING },
+                trend: { type: Type.STRING, description: "'up', 'down', or 'stable'" }
+              },
+              required: ["indicator", "value", "trend"]
+            }
+          },
+          news: {
+            type: Type.ARRAY,
+            items: {
+              type: Type.OBJECT,
+              properties: {
+                headline: { type: Type.STRING },
+                source: { type: Type.STRING },
+                timestamp: { type: Type.STRING }
+              },
+              required: ["headline", "source", "timestamp"]
+            }
+          }
+        },
+        required: ["trending", "macro", "news"]
+      }
+    }
+  });
+
+  const data = safeParseJson(response.text);
+  if (!data) throw new Error("Terminal pulse failed.");
+  return data;
+};
+
+export const screenStocks = async (country: Country, concept: string, count: number): Promise<StockInfo[]> => {
+  const response = await ai.models.generateContent({
+    model: FAST_MODEL,
+    contents: `Screen top ${count} ${country} stocks for strategy: "${concept}". Return ticker, name, exchange, sector, industry, price (IMPORTANT: include local currency symbol, e.g., ₹ for India, $ for USA, £ for UK), targetPrice (in same local currency), marketCap, recommendation, score (1-100), lastUpdated.`,
+    config: {
+      tools: [{ googleSearch: {} }],
+      responseMimeType: "application/json",
+      thinkingConfig: { thinkingBudget: 0 },
+      responseSchema: {
+        type: Type.ARRAY,
+        items: {
+          type: Type.OBJECT,
+          properties: {
+            ticker: { type: Type.STRING },
+            name: { type: Type.STRING },
+            exchange: { type: Type.STRING },
+            sector: { type: Type.STRING },
+            industry: { type: Type.STRING },
+            price: { type: Type.STRING },
+            targetPrice: { type: Type.STRING },
+            marketCap: { type: Type.STRING },
+            recommendation: { type: Type.STRING, description: "'Buy', 'Hold', or 'Sell'" },
+            score: { type: Type.NUMBER },
+            lastUpdated: { type: Type.STRING }
+          },
+          required: ["ticker", "name", "exchange", "sector", "price", "score"]
+        }
+      }
     }
   });
 
@@ -55,7 +239,7 @@ export const screenStocks = async (country: Country, concept: string, count: num
 export const searchSpecificStock = async (query: string, count: number = 1, country: Country = 'Global'): Promise<StockInfo | null> => {
   const response = await ai.models.generateContent({
     model: FAST_MODEL,
-    contents: `Locate stock "${query}" in "${country}". Return JSON: ticker, name, exchange, sector, industry, price, targetPrice, marketCap, recommendation, score (1-100), liquidity (qualitative), float (public shares info), lastUpdated.`,
+    contents: `Locate stock "${query}" in "${country}". Return JSON: ticker, name, exchange, sector, industry, price (include local currency symbol), targetPrice (include local currency symbol), marketCap, recommendation, score (1-100), liquidity (qualitative), float (public shares info), lastUpdated.`,
     config: {
       tools: [{ googleSearch: {} }],
       responseMimeType: "application/json",
@@ -81,6 +265,7 @@ export const generateCFAReport = async (stock: StockInfo): Promise<CFAReport> =>
     - Cash Flow Projections: Estimated FCF for next 5 years.
     - Terminal Value calculation: Using Gordon Growth Method (provide terminal growth rate %).
     - Compare this Absolute Valuation against Relative Multiples (P/E, EV/EBITDA).
+    - Ensure all pricing and valuation data is in the local currency of the company's primary listing.
 
     SCORE CALCULATION:
     - Return an overallScore (Conviction) between 1-100.
@@ -186,7 +371,7 @@ export const backtestStrategy = async (country: Country, concept: string, curren
   const tickers = currentPortfolio.map(s => s.ticker).join(', ');
   const response = await ai.models.generateContent({
     model: FAST_MODEL,
-    contents: `Perform a 3-year quantitative backtest simulation for [${tickers}] in ${country} using strategy "${concept}". Return JSON with strategyReturn, benchmarkReturn, sharpeRatio, maxDrawdown, analysis, topPerformers.`,
+    contents: `Perform a 3-year quantitative backtest simulation for [${tickers}] in ${country} using strategy "${concept}". Return JSON with strategyReturn, benchmarkReturn, sharpeRatio, maxDrawdown, analysis, topPerformers. Ensure all returns are calculated in the local market currency of ${country}.`,
     config: {
       tools: [{ googleSearch: {} }],
       responseMimeType: "application/json",
